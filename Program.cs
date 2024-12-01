@@ -1,6 +1,24 @@
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.EntityFrameworkCore;
+using PGManagementService.BusinessLogic;
+using PGManagementService.Data;
+using PGManagementService.Interfaces;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add DbContext and configure SQL Server connection
+builder.Services.AddDbContext<PGManagementServiceDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
+
+builder.Services.AddScoped<IAdminBL, AdminBL>();
+// Configure Serilog using appsettings.json
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
+
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -35,6 +53,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Admin}/{action=Rooms}/{id?}");
 
 app.Run();

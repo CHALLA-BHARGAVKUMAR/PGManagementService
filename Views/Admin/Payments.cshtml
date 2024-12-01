@@ -1,0 +1,26 @@
+﻿@model IEnumerable<Payment>
+
+<h2>Payments</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Mode</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var payment in Model)
+        {
+            <tr>
+                <td>@payment.Member?.FullName</td>
+                <td>@payment.Amount</td>
+                <td>@payment.PaymentDate.ToShortDateString()</td>
+                <td>@payment.PaymentMode</td>
+                <td>@(payment.IsPaid ? "Paid" : "Pending")</td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,25 @@
+﻿@model IEnumerable<Room>
+
+<h2>Rooms</h2>
+<a asp-action="AddRoom" class="btn btn-primary">Add Room</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Room Number</th>
+            <th>Type</th>
+            <th>Capacity</th>
+            <th>Occupancy</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var room in Model)
+        {
+            <tr>
+                <td>@room.RoomNumber</td>
+                <td>@room.Type</td>
+                <td>@room.Capacity</td>
+                <td>@room.Occupancy</td>
+            </tr>
+        }
+    </tbody>
+</table>

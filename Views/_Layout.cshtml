@@ -1,33 +1,17 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PG Management</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PG Management</a>
-            <div>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Admin" asp-action="Members">Members</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Admin" asp-action="Rooms">Rooms</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="container mt-4">
-        @RenderBody()
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery-validation"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive"></script>
-</body>
-</html>
+﻿@using Microsoft.AspNetCore.Identity
+@{
+    var isAdmin = User.IsInRole("Admin");
+    var isUser = User.IsInRole("User");
+}
+
+<nav>
+    @if (isAdmin)
+    {
+        <a href="@Url.Action("Index", "Admin")">Admin Dashboard</a>
+    }
+    @if (isUser)
+    {
+        <a href="@Url.Action("UserDashboard", "User")">User Dashboard</a>
+    }
+    <a href="@Url.Action("Logout", "Account")">Logout</a>
+</nav>

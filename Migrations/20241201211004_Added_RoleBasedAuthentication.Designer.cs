@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PGManagementService.Data;
 
@@ -11,9 +12,11 @@ using PGManagementService.Data;
 namespace PGManagementService.Migrations
 {
     [DbContext(typeof(PGManagementServiceDbContext))]
-    partial class PGManagementServiceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241201211004_Added_RoleBasedAuthentication")]
+    partial class Added_RoleBasedAuthentication
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

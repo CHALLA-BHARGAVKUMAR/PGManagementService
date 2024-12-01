@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PGManagementService.Interfaces;
 using PGManagementService.Models;
 
 namespace PGManagementService.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly ILogger<AdminController> _logger;
@@ -17,6 +19,11 @@ namespace PGManagementService.Controllers
             _logger = logger;
         }
 
+        public async Task<IActionResult> Index()
+        {
+            var members = await _adminBL.GetAllMembersAsync();
+            return View(members);
+        }
         // Member Management
         [HttpGet]
         public async Task<IActionResult> Members()

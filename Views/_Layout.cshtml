@@ -15,3 +15,10 @@
     }
     <a href="@Url.Action("Logout", "Account")">Logout</a>
 </nav>
+
+
+<!-- Render the Scripts section here -->
+@if (Context.Request.Path.Value.Contains("/Account/"))
+{
+    @RenderSection("Scripts", required: false)  <!-- This will include the section from the view -->
+}

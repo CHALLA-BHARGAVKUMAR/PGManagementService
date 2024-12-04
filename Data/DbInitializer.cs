@@ -18,7 +18,7 @@ namespace RoleBasedAuthExample.Data
                 }
             }
 
-            var adminUser = await userManager.FindByEmailAsync("admin@pgms.com");
+            var adminUser = await userManager.FindByEmailAsync("admin@pgms1.com");
             if (adminUser == null)
             {
                 adminUser = new ApplicationUser
@@ -26,7 +26,7 @@ namespace RoleBasedAuthExample.Data
                     UserName = "admin@pgms1.com",
                     Email = "admin@pgms1.com"
                 };
-                await userManager.CreateAsync(adminUser, "Temp@1234");
+                await userManager.CreateAsync(adminUser, "Bhargav@1234");
             }
 
             if (!await userManager.IsInRoleAsync(adminUser, "Admin"))

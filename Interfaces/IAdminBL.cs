@@ -1,4 +1,5 @@
-﻿using PGManagementService.Models;
+﻿using PGManagementService.Data.DTO;
+using PGManagementService.Models;
 
 namespace PGManagementService.Interfaces
 {
@@ -13,8 +14,11 @@ namespace PGManagementService.Interfaces
         Task<IEnumerable<Room>> GetAllRoomsAsync();
         Task AddRoomAsync(Room room);
 
+        public Task AddRoomAsyncApi(RoomDTO roomDto);
+
         Task<IEnumerable<Payment>> GetPaymentsByMemberAsync(int memberId);
         Task<IEnumerable<Query>> GetQueriesByMemberAsync(int memberId);
         Task RespondToQueryAsync(int queryId, string status, DateTime? resolvedDate);
+        bool IsRoomNumberUnique(string roomNo);
     }
 }

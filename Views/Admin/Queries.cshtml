@@ -1,0 +1,33 @@
+﻿@model IEnumerable<Query>
+
+<h2>Queries</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Created Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var query in Model)
+        {
+            <tr>
+                <td>@query.Member?.FullName</td>
+                <td>@query.Title</td>
+                <td>@query.Description</td>
+                <td>@query.Status</td>
+                <td>@query.CreatedDate.ToShortDateString()</td>
+                <td>
+                    @if (query.Status != "Resolved")
+                    {
+                        <a asp-action="ResolveQuery" asp-route-id="@query.Id" class="btn btn-success btn-sm">Resolve</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,24 @@
+﻿@using Microsoft.AspNetCore.Identity
+@{
+    var isAdmin = User.IsInRole("Admin");
+    var isUser = User.IsInRole("User");
+}
+
+<nav>
+    @if (isAdmin)
+    {
+        <a href="@Url.Action("Index", "Admin")">Admin Dashboard</a>
+    }
+    @if (isUser)
+    {
+        <a href="@Url.Action("UserDashboard", "User")">User Dashboard</a>
+    }
+    <a href="@Url.Action("Logout", "Account")">Logout</a>
+</nav>
+
+
+<!-- Render the Scripts section here -->
+@if (Context.Request.Path.Value.Contains("/Account/"))
+{
+    @RenderSection("Scripts", required: false)  <!-- This will include the section from the view -->
+}

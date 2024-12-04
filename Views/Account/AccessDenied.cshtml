@@ -1,0 +1,16 @@
+﻿
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="alert alert-danger">
+    <strong>Access Denied!</strong> You do not have permission to view this page.
+</div>
+
+<p>If you believe this is a mistake, please contact your administrator.</p>
+
+
+
+<a href="@Url.Action("Index", "Home")" class="btn btn-primary">Return to Home</a>

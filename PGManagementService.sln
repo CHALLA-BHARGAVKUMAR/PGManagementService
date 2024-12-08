@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PGManagementService", "PGManagementService.csproj", "{5FFC3425-65CA-46E9-A276-FE0136D1193C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PGManagementService", "PGManagementService.csproj", "{5FFC3425-65CA-46E9-A276-FE0136D1193C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{44666D43-AE9B-4FD8-9CFD-50CAFC0D37B9}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

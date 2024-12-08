@@ -4,6 +4,7 @@ namespace PGManagementService.Models
 {
     public class ApplicationUser:IdentityUser
     {
-        public string? Name { get; set; }
+        public string? OTP { get; set; }
+        public DateTime? OTPExpiration { get; set; }
     }
 }

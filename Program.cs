@@ -9,6 +9,13 @@ using RoleBasedAuthExample.Data;
 using Serilog;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using FluentValidation;
+using System.Reflection;
+using FluentValidation.AspNetCore;
+using PGManagementService.Validators;
+using Microsoft.AspNetCore.Mvc;
+using PGManagementService.Data.DTO;
+using PGManagementService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +28,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<PGManagementServiceDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddSingleton<EmailService>();
 builder.Services.AddScoped<IAdminBL, AdminBL>();
 
 // Configure Serilog using appsettings.json
@@ -31,8 +39,37 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 // Add services to the container
 builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options => { 
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve; });
+    .AddFluentValidation(fv =>
+    {
+        // Automatically register all validators from the current assembly
+        fv.RegisterValidatorsFromAssemblyContaining<Program>();
+    })
+    .AddJsonOptions(options => {
+        options.JsonSerializerOptions.ReferenceHandler = null;
+    });
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(ms => ms.Value.Errors.Count > 0)
+            .Select(ms => new
+            {
+                Field = ms.Key,
+                Messages = ms.Value.Errors.Select(e => e.ErrorMessage)
+            });
+
+        var response = new ApiResponse
+        {
+            Result = "false",
+            Error = errors
+        };
+
+return new BadRequestObjectResult(response);
+    };
+});
+
 builder.Services.AddRazorPages();
 
 // Configure Swagger
@@ -76,6 +113,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 // Enable middleware to serve generated Swagger as a JSON endpoint
 app.UseSwagger();

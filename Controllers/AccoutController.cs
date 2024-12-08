@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using PGManagementService.Data.DTO;
 using PGManagementService.Interfaces;
 using PGManagementService.Models;
+using PGManagementService.Services;
 
 namespace PGManagementService.Controllers
 {
@@ -13,11 +14,13 @@ namespace PGManagementService.Controllers
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly EmailService _emailService;
 
-        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, EmailService emailService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         // Login GET
@@ -63,7 +66,7 @@ namespace PGManagementService.Controllers
         public IActionResult ResetPassword(string userId)
         {
             // Validate if user exists
-            var user = _userManager.FindByIdAsync(userId).Result;
+            var user = _userManager.FindByNameAsync(userId).Result;
             if (user == null)
             {
                 return NotFound();
@@ -79,48 +82,74 @@ namespace PGManagementService.Controllers
         }
 
 
+        
+
+
         [HttpPost]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        public async Task<IActionResult> ForgotPassword([FromBody] string email)
         {
-            if (ModelState.IsValid)
+            var user = await _userManager.FindByNameAsync(email);
+            if (user == null)
             {
-                var user = await _userManager.FindByIdAsync(model.UserId);
-                if (user == null)
-                {
-                    return NotFound();
-                }
-
-                // Check if the user is logging in with the default password
-                var isDefaultPassword = await _userManager.CheckPasswordAsync(user, "DefaultPassword123!");
-
-                if (isDefaultPassword)
-                {
-                    // Change the user's password
-                    var result = await _userManager.ChangePasswordAsync(user, "DefaultPassword123!", model.NewPassword);
-
-                    if (result.Succeeded)
-                    {
-                        // Sign the user in after resetting the password
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return RedirectToAction("Index", "Home");
-                    }
-                    else
-                    {
-                        foreach (var error in result.Errors)
-                        {
-                            ModelState.AddModelError(string.Empty, error.Description);
-                        }
-                    }
-                }
-                else
-                {
-                    // If default password is not used, redirect or handle accordingly
-                    return RedirectToAction("Index", "Home");
-                }
+                return BadRequest("User not found.");
             }
 
-            return View(model);
+            // Generate a 6-digit OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            // Store OTP and expiration
+            user.OTP = otp;
+            user.OTPExpiration = DateTime.UtcNow.AddMinutes(10); // OTP valid for 10 minutes
+            await _userManager.UpdateAsync(user);
+
+            // Send OTP via email
+            var subject = "Reset Password OTP";
+            var body = $"Your OTP for resetting the password is {otp}. It is valid for 10 minutes.";
+            await _emailService.SendEmailAsync(email, subject, body);
+
+            return Ok("OTP sent to your email.");
         }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState.ErrorCount);
+            }
+
+                var user = await _userManager.FindByNameAsync(model.UserId);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            if (user.OTP != model.Otp || user.OTPExpiration < DateTime.UtcNow)
+            {
+                return BadRequest("Invalid or expired OTP.");
+            }
+
+            // Reset password
+            var resetResult = await _userManager.ResetPasswordAsync(
+                user,
+                await _userManager.GeneratePasswordResetTokenAsync(user),
+                model.NewPassword
+            );
+
+            if (!resetResult.Succeeded)
+            {
+                return BadRequest("Password reset failed.");
+            }
+
+            // Clear OTP
+            user.OTP = null;
+            user.OTPExpiration = null;
+            await _userManager.UpdateAsync(user);
+
+            return Ok("Password reset successful.");
+        }
+
+
 
     }
 }

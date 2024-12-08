@@ -10,7 +10,7 @@ using PGManagementService.Models;
 namespace PGManagementService.Controllers
 {
 
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminApiController : Controller
@@ -96,20 +96,9 @@ namespace PGManagementService.Controllers
         //}
 
         [HttpPost("AddRoom")]
-        public async Task<ActionResult<ApiResponse>> AddRoom(RoomDTO roomDto)
-        {
-            if(roomDto == null || string.IsNullOrWhiteSpace(roomDto.RoomNo) || string.IsNullOrEmpty(roomDto.RoomNo))
-            {
-                ErrorList errorList = new()
-                {
-                    ErrorCode = "NotValidData",
-                    ErrorDescription = "Not valid RoomNo"
-                };
-                return BadRequest(new ApiResponse
-                {
-                    Error = errorList
-                });
-            }
+        public async Task<ActionResult<ApiResponse>> AddRoom([FromBody] RoomDTO roomDto)
+        {     
+
             if (!_adminBL.IsRoomNumberUnique(roomDto.RoomNo))
             {
                 ErrorList errorList = new()

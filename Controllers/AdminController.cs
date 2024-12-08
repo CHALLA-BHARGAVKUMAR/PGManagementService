@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using PGManagementService.Data.DTO;
 using PGManagementService.Interfaces;
 using PGManagementService.Models;
 
@@ -15,13 +17,15 @@ namespace PGManagementService.Controllers
         private readonly IAdminBL _adminBL;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IValidator<RoomDTO> _validator;
 
-        public AdminController(IAdminBL adminBL,ILogger<AdminController> logger, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public AdminController(IAdminBL adminBL,ILogger<AdminController> logger, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IValidator<RoomDTO> validator)
         {
             _adminBL = adminBL;
             _logger = logger;
             _userManager = userManager;
             _signInManager = signInManager;
+            _validator = validator;
         }
 
         public async Task<IActionResult> Index()
@@ -55,7 +59,7 @@ namespace PGManagementService.Controllers
                 // Create a new ApplicationUser using the phone number as the UserName
                 var user = new ApplicationUser
                 {
-                    UserName = member.PhoneNumber, // Use phone number as the username
+                    UserName = member.Email, // Use phone number as the username
                     PhoneNumber = member.PhoneNumber,
                 };
 
@@ -89,7 +93,7 @@ namespace PGManagementService.Controllers
             // If model is invalid, return the view
             ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
             return View(member);
-        }
+        } 
 
 
 
@@ -134,14 +138,20 @@ namespace PGManagementService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddRoom(Room room)
+        public async Task<IActionResult> AddRoom(RoomDTO room)
         {
-            if (ModelState.IsValid)
+            // FluentValidation will automatically add errors to ModelState if validation fails
+            var validationResult = _validator.Validate(room);
+
+            if (!validationResult.IsValid)
             {
-                await _adminBL.AddRoomAsync(room);
-                return RedirectToAction("Rooms");
+                // This will automatically populate the ModelState with errors
+                foreach (var error in validationResult.Errors)
+                {
+                    ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                }            
             }
-            return View(room);
+            return View(room);// Return the view with validation errors
         }
     }
 }

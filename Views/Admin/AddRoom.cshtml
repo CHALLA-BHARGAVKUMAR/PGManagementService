@@ -1,21 +1,32 @@
-﻿@model Room
+﻿@using PGManagementService.Data.DTO;
+@model RoomDTO
 
-<h2>Add Room</h2>
-<form asp-action="AddRoom">
+<h2>Create Room</h2>
+
+<form asp-action="AddRoom" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
     <div class="form-group">
-        <label asp-for="RoomNumber"></label>
-        <input asp-for="RoomNumber" class="form-control" />
-        <span asp-validation-for="RoomNumber" class="text-danger"></span>
+        <label for="RoomNo">Room Number</label>
+        <input asp-for="RoomNo" class="form-control" />
+        <span asp-validation-for="RoomNo" class="text-danger"></span>
     </div>
+
     <div class="form-group">
-        <label asp-for="Type"></label>
-        <input asp-for="Type" class="form-control" />
-        <span asp-validation-for="Type" class="text-danger"></span>
+        <label for="RoomType">Room Type</label>
+        <select asp-for="RoomType" class="form-control">
+            <option value="1">Single</option>
+            <option value="2">Double</option>
+            <option value="3">Suite</option>
+        </select>
+        <span asp-validation-for="RoomType" class="text-danger"></span>
     </div>
-    <div class="form-group">
-        <label asp-for="Capacity"></label>
-        <input asp-for="Capacity" class="form-control" />
-        <span asp-validation-for="Capacity" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-success">Save</button>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

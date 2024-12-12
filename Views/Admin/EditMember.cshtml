@@ -24,7 +24,7 @@
     </div>
     <div class="mb-3">
         <label asp-for="RoomId" class="form-label">Room</label>
-        <select asp-for="RoomId" asp-items="@(new SelectList(ViewBag.Rooms, "Id", "RoomNumber"))" class="form-control">
+        <select asp-for="RoomId" asp-items="@(new SelectList(ViewBag.Rooms, "Id", "RoomNo"))" class="form-control">
             <option value="">Select Room</option>
         </select>
         <span asp-validation-for="RoomId" class="text-danger"></span>

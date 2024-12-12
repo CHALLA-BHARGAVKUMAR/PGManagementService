@@ -38,7 +38,7 @@ namespace PGManagementService.Controllers
             if (user != null && await _userManager.CheckPasswordAsync(user, password))
             {
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("ResetPassword", new { userId = user.Id });
+                /*return RedirectToAction("ResetPassword", new { userId = user.Id })*/;
             }
 
             ViewBag.ErrorMessage = "Invalid login attempt.";

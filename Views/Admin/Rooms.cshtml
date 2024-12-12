@@ -1,25 +1,57 @@
-﻿@model IEnumerable<Room>
+﻿@using PGManagementService.Data.DTO;
+@model IEnumerable<RoomResponse>
 
 <h2>Rooms</h2>
 <a asp-action="AddRoom" class="btn btn-primary">Add Room</a>
 <table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Room Number</th>
-            <th>Type</th>
-            <th>Capacity</th>
-            <th>Occupancy</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var room in Model)
-        {
-            <tr>
-                <td>@room.RoomNumber</td>
-                <td>@room.Type</td>
-                <td>@room.Capacity</td>
-                <td>@room.Occupancy</td>
-            </tr>
-        }
-    </tbody>
+	<thead>
+		<tr>
+			<th>Room Number</th>
+			<th>Type</th>
+			<th>Available Beds</th>
+			<th>Occupancy</th>
+			<th>Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var room in Model)
+		{
+			<tr>
+				<td>@room.RoomNo</td>
+				<td>@room.Type</td>
+				<td>@room.BedsAvailable</td>
+				<td>@room.Occupied</td>
+				<td>
+					<a asp-action="EditRoom" asp-route-id="@room.Id" class="btn btn-warning btn-sm">Edit</a>
+					@{
+						if (room.Occupied == 0)
+						{
+							<a asp-action="DeleteRoom" asp-route-id="@room.Id" class="btn btn-danger btn-sm">Delete</a>
+						}
+					}
+
+				</td>
+			</tr>
+		}
+	</tbody>
 </table>
+
+@* <div class="chart-container"> <canvas id="roomMetricsChart"></canvas> </div> *@
+
+
+
+<script>
+	var ctx = document.getElementById('roomMetricsChart').getContext('2d'); var hostlerMetricsChart = new Chart(ctx, {
+		type: 'doughnut', data: { labels: ['Total Rooms', 'Total Occupied', 'Total availiable Beds'], datasets: [{ 
+			data: [@Model.Count(), @Model.Count(h => h.Occupied > 0), @Model.Count(h => h.BedsAvailable > 0) ], backgroundColor: ['#FF6384', '#FFCE56', '#36A2EB'], }] }, options: {
+			responsive: true, plugins: {
+				legend: { position: 'top', }, title: {
+					display: true, text: 'Hostler Room Metrics'
+				}
+			}
+		}
+	})
+</script>
+
+
+

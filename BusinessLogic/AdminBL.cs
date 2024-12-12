@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PGManagementService.BusinessLogic;
 using PGManagementService.Controllers;
@@ -14,11 +15,13 @@ namespace PGManagementService.BusinessLogic
         private readonly PGManagementServiceDbContext _context;
         private readonly ILogger<AdminBL> _logger;
         private const string className = "AdminBL";
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminBL(PGManagementServiceDbContext context,ILogger<AdminBL> logger)
+        public AdminBL(PGManagementServiceDbContext context,ILogger<AdminBL> logger, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _logger = logger;
+            _userManager = userManager; 
         }
         // Member Management
         public async Task<IEnumerable<Member>> GetAllMembersAsync()
@@ -38,12 +41,23 @@ namespace PGManagementService.BusinessLogic
         public async Task AddMemberAsync(Member member)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
-
+            var room = _context.Rooms.Where(x => x.Id == member.RoomId).FirstOrDefault();
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
                     _context.Members.Add(member);
+                    await _context.SaveChangesAsync();
+                    if (room.Occupancy < room.Capacity)
+                    {
+                        room.Occupancy += 1;
+                    }
+                    if (room.AvailableBeds > 0)
+                    {
+                        room.AvailableBeds -= 1;
+                    }
+
+                    _context.Rooms.Update(room);
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
@@ -83,11 +97,23 @@ namespace PGManagementService.BusinessLogic
             var member = await _context.Members.FindAsync(id);
             if (member != null)
             {
+                var room = _context.Rooms.Where(x => x.Id == member.RoomId).FirstOrDefault();
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
                     {
                         _context.Members.Remove(member);
+                        await _context.SaveChangesAsync();
+                        if (room.Occupancy > 0)
+                        {
+                            room.Occupancy -= 1;
+                        }
+                        if (room.AvailableBeds < room.Capacity)
+                        {
+                            room.AvailableBeds += 1;
+                        }
+
+                        _context.Rooms.Update(room);
                         await _context.SaveChangesAsync();
 
                         await transaction.CommitAsync();
@@ -106,15 +132,51 @@ namespace PGManagementService.BusinessLogic
         }
 
         // Room Management
-        public async Task<IEnumerable<Room>> GetAllRoomsAsync()
+        public async Task<IEnumerable<RoomResponse>> GetAllRoomsAsync()
         {
-            return await _context.Rooms.Include(r => r.Members).ToListAsync();
+            var rooms = _context.Rooms
+                                 .Select(x => new
+                                 {
+                                     x.Id,
+                                     x.RoomNumber,
+                                     x.Capacity,
+                                     x.Type,
+                                     x.Occupancy,
+                                     x.AvailableBeds
+                                 })
+                                 .Select(x => new RoomResponse
+                                 {
+                                     Id = x.Id,
+                                     RoomNo = x.RoomNumber,
+                                     Capacity = x.Capacity,
+                                     Occupied = x.Occupancy,
+                                     Type = x.Type,
+                                     BedsAvailable = x.AvailableBeds
+                                 })
+                                 .AsEnumerable();
+
+
+            if (rooms.Any())
+            {
+                return rooms;
+            }
+
+
+            return null;
         }
 
-        public async Task AddRoomAsync(Room room)
+        public async Task AddRoomAsync(RoomDTO roomDto)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
 
+            var room = new Room
+            {
+                RoomNumber = roomDto.RoomNo,
+                Type = roomDto.RoomType.ToString(),
+                Capacity = (int)roomDto.RoomType,
+                AvailableBeds = (int)roomDto.RoomType
+
+            };
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
@@ -131,6 +193,34 @@ namespace PGManagementService.BusinessLogic
                 }
             }            
             
+        }
+
+        public async Task DeleteRoomAsync(int id)
+        {
+            var methodName = MethodBase.GetCurrentMethod()?.Name;
+            var room = await _context.Rooms.FindAsync(id);
+            if (room != null)
+            {
+                using (var transaction = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        _context.Rooms.Remove(room);
+                        await _context.SaveChangesAsync();
+
+                        await transaction.CommitAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError($"{className}: {methodName}  Exception : {ex}");
+                    }
+                }
+
+            }
+
+
+
         }
 
         public async Task AddRoomAsyncApi(RoomDTO roomDto)
@@ -185,6 +275,15 @@ namespace PGManagementService.BusinessLogic
         {
             return _context.Rooms.All(x => x.RoomNumber.ToLower() != roomNo.ToLower());
         }
+
+
+        public async Task<List<Member>> GetAllHostlersAsync()
+        {
+            var members = await _context.Members.Include(m => m.Room).Include(m => m.Payments).ToListAsync();
+
+            return members;
+        }
+
     }
 }
 

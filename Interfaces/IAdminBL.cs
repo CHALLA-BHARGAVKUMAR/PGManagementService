@@ -11,8 +11,10 @@ namespace PGManagementService.Interfaces
         Task UpdateMemberAsync(Member member);
         Task DeleteMemberAsync(int id);
 
-        Task<IEnumerable<Room>> GetAllRoomsAsync();
-        Task AddRoomAsync(Room room);
+        Task DeleteRoomAsync(int id);
+
+        Task<IEnumerable<RoomResponse>> GetAllRoomsAsync();
+        Task AddRoomAsync(RoomDTO room);
 
         public Task AddRoomAsyncApi(RoomDTO roomDto);
 
@@ -20,5 +22,7 @@ namespace PGManagementService.Interfaces
         Task<IEnumerable<Query>> GetQueriesByMemberAsync(int memberId);
         Task RespondToQueryAsync(int queryId, string status, DateTime? resolvedDate);
         bool IsRoomNumberUnique(string roomNo);
+
+        Task<List<Member>> GetAllHostlersAsync();
     }
 }

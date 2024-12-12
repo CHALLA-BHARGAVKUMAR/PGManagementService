@@ -1,0 +1,63 @@
+﻿@model AdminDashboardViewResponse
+
+<div>
+    <canvas id="pieChart"></canvas>
+    <canvas id="barChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var pieCtx = document.getElementById('pieChart').getContext('2d');
+    var pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Payments Due', 'Payments Completed'],
+            datasets: [{
+                data: [@Model.PaymentsDue, @Model.PaymentsCompleted],
+                backgroundColor: ['#FF6384', '#36A2EB']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Payment Status'
+                }
+            }
+        }
+    });
+
+    var barCtx = document.getElementById('barChart').getContext('2d');
+    var barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Total Hostlers', 'Occupied Beds', 'Available Beds'],
+            datasets: [{
+                label: 'Metrics',
+                data: [@Model.TotalHostlers, @Model.OccupiedBeds, @Model.AvailableBeds],
+                backgroundColor: ['#FF6384', '#FFCE56', '#36A2EB']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: true,
+                    text: 'Hostler Metrics'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>

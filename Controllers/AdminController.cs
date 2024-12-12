@@ -28,12 +28,6 @@ namespace PGManagementService.Controllers
             _validator = validator;
         }
 
-        public async Task<IActionResult> Index()
-        {
-            var members = await _adminBL.GetAllMembersAsync();
-            return View(members);
-        }
-
 
 
         // Member Management
@@ -77,8 +71,8 @@ namespace PGManagementService.Controllers
                     // Add the member to your internal system
                     await _adminBL.AddMemberAsync(member);
 
-                    // Redirect to a page where the user can reset their password
-                    
+                    return RedirectToAction("Members");
+
                 }
                 else
                 {
@@ -123,11 +117,14 @@ namespace PGManagementService.Controllers
             return RedirectToAction("Members");
         }
 
+
+        #region  Room Management
+
         [HttpGet]
-        // Room Management
         public async Task<IActionResult> Rooms()
         {
             var rooms = await _adminBL.GetAllRoomsAsync();
+
             return View(rooms);
         }
 
@@ -151,8 +148,17 @@ namespace PGManagementService.Controllers
                     ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
                 }            
             }
-            return View(room);// Return the view with validation errors
+            await _adminBL.AddRoomAsync(room);
+            return RedirectToAction("Rooms");// Return the view with validation errors
         }
+
+        public async Task<IActionResult> DeleteRoom(int id)
+        {
+            await _adminBL.DeleteRoomAsync(id);
+            return RedirectToAction("Rooms");
+        }
+
+        #endregion  Room Management
     }
 }
 

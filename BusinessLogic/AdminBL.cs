@@ -1,10 +1,13 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.Metrics;
+using System.Reflection;
+using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PGManagementService.BusinessLogic;
 using PGManagementService.Controllers;
 using PGManagementService.Data;
 using PGManagementService.Data.DTO;
+using PGManagementService.Helpers;
 using PGManagementService.Interfaces;
 using PGManagementService.Models;
 
@@ -70,6 +73,83 @@ namespace PGManagementService.BusinessLogic
             }
         }
 
+
+        public async Task<ApiResponse> AddMemberAsync(MemberRequest memberRequest)
+        {
+            var apiResponse = new ApiResponse();
+            var errList = new ErrorList();
+            var methodName = MethodBase.GetCurrentMethod()?.Name;
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                   
+                    var member = memberRequest.MapTo<MemberRequest, Member>();
+
+                    _context.Members.Add(member);
+
+                    await _context.SaveChangesAsync();
+
+                    var room = await _context.Rooms.Where(x => x.Id == memberRequest.RoomId).FirstOrDefaultAsync();
+
+                    if (room == null)
+                    {
+                        errList.ErrorCode = "RoomNotFound";
+                        errList.ErrorDescription = "No Room Found";
+                        apiResponse.Error=errList;
+                        throw new Exception("Room not found"); 
+                    }
+
+                    if (room.Occupancy < room.Capacity)
+                    {
+                        room.Occupancy++;
+                    }
+
+                    if (room.AvailableBeds > 0)
+                    {
+                        room.AvailableBeds--;
+                    }
+
+                    _context.Entry(room).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+
+                    // Create user
+                    var user = new ApplicationUser
+                    {
+                        UserName = memberRequest.Email,
+                        PhoneNumber = memberRequest.PhoneNumber
+                    };
+
+                    var defaultPassword = "DefaultPassword123!";
+                    var createUserResult = await _userManager.CreateAsync(user, defaultPassword);
+
+                    if (createUserResult.Succeeded)
+                    {
+                        await _userManager.AddToRoleAsync(user, "User");
+                    }
+                    else
+                    {
+                        _logger.LogError($"{methodName}: Failed to create user. Errors: {createUserResult.Errors}");
+                        apiResponse.Error = createUserResult.Errors;
+                        throw new Exception("Failed to create user");
+                        
+                    }
+
+                    transaction.Commit();
+                    apiResponse.Result = true;
+                    return apiResponse;
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError($"{methodName} Exception: {ex}");
+                    return apiResponse;
+                }
+            }
+        }
+ 
+
         public async Task UpdateMemberAsync(Member member)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
@@ -131,19 +211,10 @@ namespace PGManagementService.BusinessLogic
             
         }
 
-        // Room Management
-        public async Task<IEnumerable<RoomResponse>> GetAllRoomsAsync()
+        #region Room Management
+        public IEnumerable<RoomResponse> GetAllRoomsAsync()
         {
             var rooms = _context.Rooms
-                                 .Select(x => new
-                                 {
-                                     x.Id,
-                                     x.RoomNumber,
-                                     x.Capacity,
-                                     x.Type,
-                                     x.Occupancy,
-                                     x.AvailableBeds
-                                 })
                                  .Select(x => new RoomResponse
                                  {
                                      Id = x.Id,
@@ -165,7 +236,7 @@ namespace PGManagementService.BusinessLogic
             return null;
         }
 
-        public async Task AddRoomAsync(RoomDTO roomDto)
+        public async Task AddRoomAsync(RoomRequest roomDto)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
 
@@ -195,47 +266,53 @@ namespace PGManagementService.BusinessLogic
             
         }
 
-        public async Task DeleteRoomAsync(int id)
+        public bool DeleteRoom(int id)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
-            var room = await _context.Rooms.FindAsync(id);
-            if (room != null)
+            var result = 0;
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                using (var transaction = _context.Database.BeginTransaction())
+                try
                 {
-                    try
+                    var room = _context.Rooms.Where(x=>x.Id == id).FirstOrDefault();
+                    if(room!= null)
                     {
                         _context.Rooms.Remove(room);
-                        await _context.SaveChangesAsync();
+                    }
+                    
+                    result =_context.SaveChanges();
 
-                        await transaction.CommitAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogError($"{className}: {methodName}  Exception : {ex}");
-                    }
+                    transaction.CommitAsync();
                 }
-
+                catch (Exception ex)
+                {
+                     transaction.Rollback();
+                    _logger.LogError($"{className}: {methodName}  Exception : {ex}");
+                        
+                }
             }
+            return result > 0;
+            
 
 
 
         }
 
-        public async Task AddRoomAsyncApi(RoomDTO roomDto)
+        public async Task AddRoomAsyncApi(RoomRequest roomDto)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
             Room room = new();
             room.RoomNumber = roomDto.RoomNo;
             room.Capacity = Convert.ToInt32(roomDto.RoomType);
             room.Type = roomDto.RoomType.ToString();
+            room.AvailableBeds = room.Capacity;
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
                     _context.Rooms.Add(room);
                     await _context.SaveChangesAsync();
+
 
                     await transaction.CommitAsync();
                 }
@@ -247,6 +324,10 @@ namespace PGManagementService.BusinessLogic
             }
 
         }
+
+        #endregion Room Management
+
+
 
         // Payment and Query Management
         public async Task<IEnumerable<Payment>> GetPaymentsByMemberAsync(int memberId)

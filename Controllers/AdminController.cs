@@ -17,9 +17,9 @@ namespace PGManagementService.Controllers
         private readonly IAdminBL _adminBL;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IValidator<RoomDTO> _validator;
+        private readonly IValidator<RoomRequest> _validator;
 
-        public AdminController(IAdminBL adminBL,ILogger<AdminController> logger, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IValidator<RoomDTO> validator)
+        public AdminController(IAdminBL adminBL,ILogger<AdminController> logger, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IValidator<RoomRequest> validator)
         {
             _adminBL = adminBL;
             _logger = logger;
@@ -41,10 +41,10 @@ namespace PGManagementService.Controllers
         [HttpGet]
         public async Task<IActionResult> AddMember()
         {
-            ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
+            ViewBag.Rooms = _adminBL.GetAllRoomsAsync();
             return View();
         }
-
+         
         [HttpPost]
         public async Task<IActionResult> AddMember(Member member)
         {
@@ -85,8 +85,8 @@ namespace PGManagementService.Controllers
             }
 
             // If model is invalid, return the view
-            ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
-            return View(member);
+            ViewBag.Rooms = _adminBL.GetAllRoomsAsync();
+             return View(member);
         } 
 
 
@@ -95,7 +95,7 @@ namespace PGManagementService.Controllers
         {
             var member = await _adminBL.GetMemberByIdAsync(id);
             if (member == null) return NotFound();
-            ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
+            ViewBag.Rooms =  _adminBL.GetAllRoomsAsync();
             return View(member);
         }
 
@@ -107,7 +107,7 @@ namespace PGManagementService.Controllers
                 await _adminBL.UpdateMemberAsync(member);
                 return RedirectToAction("Members");
             }
-            ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
+            ViewBag.Rooms = _adminBL.GetAllRoomsAsync();
             return View(member);
         }
 
@@ -123,7 +123,7 @@ namespace PGManagementService.Controllers
         [HttpGet]
         public async Task<IActionResult> Rooms()
         {
-            var rooms = await _adminBL.GetAllRoomsAsync();
+            var rooms =  _adminBL.GetAllRoomsAsync();
 
             return View(rooms);
         }
@@ -135,7 +135,7 @@ namespace PGManagementService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddRoom(RoomDTO room)
+        public async Task<IActionResult> AddRoom(RoomRequest room)
         {
             // FluentValidation will automatically add errors to ModelState if validation fails
             var validationResult = _validator.Validate(room);
@@ -154,7 +154,7 @@ namespace PGManagementService.Controllers
 
         public async Task<IActionResult> DeleteRoom(int id)
         {
-            await _adminBL.DeleteRoomAsync(id);
+            _adminBL.DeleteRoom(id);
             return RedirectToAction("Rooms");
         }
 

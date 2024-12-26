@@ -8,15 +8,16 @@ namespace PGManagementService.Interfaces
         Task<IEnumerable<Member>> GetAllMembersAsync();
         Task<Member> GetMemberByIdAsync(int id);
         Task AddMemberAsync(Member member);
+        Task<ApiResponse> AddMemberAsync(MemberRequest memberRequest);
         Task UpdateMemberAsync(Member member);
         Task DeleteMemberAsync(int id);
 
-        Task DeleteRoomAsync(int id);
+        bool DeleteRoom(int id);
 
-        Task<IEnumerable<RoomResponse>> GetAllRoomsAsync();
-        Task AddRoomAsync(RoomDTO room);
+        IEnumerable<RoomResponse> GetAllRoomsAsync();
+        Task AddRoomAsync(RoomRequest room);
 
-        public Task AddRoomAsyncApi(RoomDTO roomDto);
+        public Task AddRoomAsyncApi(RoomRequest roomDto);
 
         Task<IEnumerable<Payment>> GetPaymentsByMemberAsync(int memberId);
         Task<IEnumerable<Query>> GetQueriesByMemberAsync(int memberId);

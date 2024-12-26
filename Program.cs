@@ -1,23 +1,22 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using PGManagementService.BusinessLogic;
 using PGManagementService.Data;
 using PGManagementService.Interfaces;
 using PGManagementService.Models;
 using RoleBasedAuthExample.Data;
-using Serilog;
-using Microsoft.OpenApi.Models;
-using System.Text.Json.Serialization;
-using FluentValidation;
-using System.Reflection;
-using FluentValidation.AspNetCore;
-using PGManagementService.Validators;
-using Microsoft.AspNetCore.Mvc;
 using PGManagementService.Data.DTO;
 using PGManagementService.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Serilog;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.OpenApi.Models;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 // Add DbContext and configure SQL Server connection
 builder.Services.AddDbContext<PGManagementServiceDbContext>(options =>
@@ -70,6 +69,16 @@ return new BadRequestObjectResult(response);
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin() // Add the client URL here
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 builder.Services.AddRazorPages();
 
 // Configure Swagger
@@ -89,6 +98,8 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
 });
+
+
 
 var app = builder.Build();
 
@@ -113,6 +124,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("AllowAll");
 
 
 // Enable middleware to serve generated Swagger as a JSON endpoint

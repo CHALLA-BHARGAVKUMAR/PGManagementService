@@ -1,11 +1,8 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using Microsoft.AspNetCore.Authorization;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using PGManagementService.Data.DTO;
 using PGManagementService.Interfaces;
-using PGManagementService.Models;
+
 
 namespace PGManagementService.Controllers
 {
@@ -17,89 +14,55 @@ namespace PGManagementService.Controllers
     {
         private readonly ILogger<AdminApiController> _logger;
         private readonly IAdminBL _adminBL;
+        private readonly IValidator<MemberRequest> _memberValidator;
+        private readonly IValidator<RoomRequest> _roomValidator;
 
-        public AdminApiController(IAdminBL adminBL,ILogger<AdminApiController> logger)
+        public AdminApiController(IAdminBL adminBL, ILogger<AdminApiController> logger, IValidator<MemberRequest> memberValidator, IValidator<RoomRequest> roomValidator)
         {
             _adminBL = adminBL;
             _logger = logger;
+            _memberValidator = memberValidator;
+            _roomValidator = roomValidator;
         }
 
-        //public async Task<IActionResult> Index()
-        //{
-        //    var members = await _adminBL.GetAllMembersAsync();
-        //    return View(members);
-        //}
-        //// Member Management
-        //[HttpGet]
-        //public async Task<IActionResult> Members()
-        //{
-        //    var members = await _adminBL.GetAllMembersAsync();
-        //    return View(members);
-        //}
+        #region Rooms CRUD
 
-        //[HttpGet]
-        //public async Task<IActionResult> AddMember()
-        //{
-        //    ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
-        //    return View();
-        //}
-
-        //[HttpPost]
-        //public async Task<IActionResult> AddMember(Member member)
-        //{
-        //    if (ModelState.IsValid)
-        //    {
-        //        await _adminBL.AddMemberAsync(member);
-        //        return RedirectToAction("Members");
-        //    }
-        //    ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
-        //    return View(member);
-        //}
-
-        //public async Task<IActionResult> EditMember(int id)
-        //{
-        //    var member = await _adminBL.GetMemberByIdAsync(id);
-        //    if (member == null) return NotFound();
-        //    ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
-        //    return View(member);
-        //}
-
-        //[HttpPost]
-        //public async Task<IActionResult> EditMember(Member member)
-        //{
-        //    if (ModelState.IsValid)
-        //    {
-        //        await _adminBL.UpdateMemberAsync(member);
-        //        return RedirectToAction("Members");
-        //    }
-        //    ViewBag.Rooms = await _adminBL.GetAllRoomsAsync();
-        //    return View(member);
-        //}
-
-        //public async Task<IActionResult> DeleteMember(int id)
-        //{
-        //    await _adminBL.DeleteMemberAsync(id);
-        //    return RedirectToAction("Members");
-        //}
-
-        [HttpGet]
-        public async Task<IActionResult> Rooms()
+        [HttpGet("AllRooms")]
+        public ActionResult<ApiResponse> AllRooms()
         {
-            var rooms = await _adminBL.GetAllRoomsAsync();
-            return Ok(rooms);
-        }
+            var rooms = _adminBL.GetAllRoomsAsync();
 
-        //[HttpGet]
-        //public IActionResult AddRoom()
-        //{
-        //    return View();
-        //}
+            if (rooms == null)
+            {
+                ErrorList errorList = new()
+                {
+                    ErrorCode = "NoRooms",
+                    ErrorDescription = "Ro Rooms Available"
+                };
+                return BadRequest(new ApiResponse
+                {
+                    Error = errorList
+                });
+            }
+            return Ok(new ApiResponse
+            {
+                Result = rooms
+            });
+        }
 
         [HttpPost("AddRoom")]
-        public async Task<ActionResult<ApiResponse>> AddRoom([FromBody] RoomDTO roomDto)
-        {     
+        public async Task<ActionResult<ApiResponse>> AddRoom([FromBody] RoomRequest roomRequest)
+        {
+            var validator = _roomValidator.Validate(roomRequest);
+            if (!validator.IsValid)
+            {
+                return BadRequest(new ApiResponse
+                {
+                    Error = validator.Errors
+                });
+            }
 
-            if (!_adminBL.IsRoomNumberUnique(roomDto.RoomNo))
+            if (!_adminBL.IsRoomNumberUnique(roomRequest.RoomNo))
             {
                 ErrorList errorList = new()
                 {
@@ -110,13 +73,51 @@ namespace PGManagementService.Controllers
                 {
                     Error = errorList
                 });
+
             }
-            await _adminBL.AddRoomAsyncApi(roomDto);
+            await _adminBL.AddRoomAsyncApi(roomRequest);
             return Ok(new ApiResponse
             {
                 Result = true
             });
         }
+
+        [HttpDelete("DeleteRoom")]
+        public async Task<ActionResult<ApiResponse>> DeleteRoom(int roomId)
+        {
+
+            var result = _adminBL.DeleteRoom(roomId);
+            return Ok(new ApiResponse
+            {
+                Result = result
+            });
+        }
+        #endregion Rooms CRUD
+
+        #region Members CRUD
+
+        [HttpPost("AddMember")]
+        public async Task<ActionResult<ApiResponse>> AddMember([FromBody] MemberRequest memberRequest)
+        {
+
+            var validator = await _memberValidator.ValidateAsync(memberRequest);
+            if (!validator.IsValid)
+            {
+                return BadRequest(new ApiResponse
+                {
+                    Error = validator.Errors
+                });
+            }
+            var apiResponse = await _adminBL.AddMemberAsync(memberRequest);
+            return Ok(apiResponse);
+        }
+
+        #endregion Members CRUD
+
     }
+
+
+
+
 }
 

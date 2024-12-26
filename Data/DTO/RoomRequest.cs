@@ -2,7 +2,7 @@
 
 namespace PGManagementService.Data.DTO
 {
-    public class RoomDTO
+    public class RoomRequest
     {
         public string? RoomNo { get; set; }
         public SharingType RoomType { get; set;}

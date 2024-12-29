@@ -73,9 +73,9 @@ namespace PGManagementService.Controllers
             }
 
             // Create the ResetPasswordViewModel and pass it to the view
-            var model = new ResetPasswordViewModel
+            var model = new ResetPasswordRequest
             {
-                UserId = userId
+                Email = userId
             };
 
             return View(model);
@@ -111,14 +111,14 @@ namespace PGManagementService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordViewModel model)
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState.ErrorCount);
             }
 
-                var user = await _userManager.FindByNameAsync(model.UserId);
+                var user = await _userManager.FindByNameAsync(model.Email);
             if (user == null)
             {
                 return BadRequest("User not found.");

@@ -11,6 +11,7 @@ namespace PGManagementService.Data
         public PGManagementServiceDbContext(DbContextOptions<PGManagementServiceDbContext> options)
         : base(options)
         {
+            Console.WriteLine("DbContext instance created!");
         }
 
         public DbSet<Member> Members { get; set; }

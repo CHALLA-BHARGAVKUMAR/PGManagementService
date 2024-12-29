@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.Metrics;
+using System.DirectoryServices.Protocols;
 using System.Reflection;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +25,8 @@ namespace PGManagementService.BusinessLogic
         {
             _context = context;
             _logger = logger;
-            _userManager = userManager; 
+            _userManager = userManager;
+            Console.WriteLine("AdminBL instance created!");
         }
         // Member Management
         public async Task<IEnumerable<Member>> GetAllMembersAsync()
@@ -85,20 +87,21 @@ namespace PGManagementService.BusinessLogic
                 try
                 {
                    
-                    var member = memberRequest.MapTo<MemberRequest, Member>();
-
-                    _context.Members.Add(member);
-
-                    await _context.SaveChangesAsync();
 
                     var room = await _context.Rooms.Where(x => x.Id == memberRequest.RoomId).FirstOrDefaultAsync();
 
                     if (room == null)
                     {
                         errList.ErrorCode = "RoomNotFound";
-                        errList.ErrorDescription = "No Room Found";
+                        errList.ErrorDescription = "No Room Found"; 
                         apiResponse.Error=errList;
                         throw new Exception("Room not found"); 
+                    }
+                    else if (room.Occupancy == room.Capacity) {
+                        errList.ErrorCode = "RoomFilled";
+                        errList.ErrorDescription = "No Available Beds";
+                        apiResponse.Error = errList;
+                        throw new Exception("Total Room filled");
                     }
 
                     if (room.Occupancy < room.Capacity)
@@ -106,12 +109,34 @@ namespace PGManagementService.BusinessLogic
                         room.Occupancy++;
                     }
 
+
                     if (room.AvailableBeds > 0)
                     {
                         room.AvailableBeds--;
                     }
 
+                    var member = memberRequest.MapTo<MemberRequest, Member>();
+
+                    var addMembertoRoom = room.Members;
+                    if(addMembertoRoom != null)
+                    {
+                        addMembertoRoom.Add(member);
+                    }
+                    else
+                    {
+                        addMembertoRoom = new List<Member>
+                        {
+                            member
+                        };
+                    }
+
                     _context.Entry(room).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+
+                   
+
+                    _context.Members.Add(member);
+
                     await _context.SaveChangesAsync();
 
                     // Create user
@@ -171,19 +196,36 @@ namespace PGManagementService.BusinessLogic
             }
         }
 
-        public async Task DeleteMemberAsync(int id)
+        public async Task<ApiResponse> DeleteMemberAsync(int id)
         {
             var methodName = MethodBase.GetCurrentMethod()?.Name;
-            var member = await _context.Members.FindAsync(id);
-            if (member != null)
-            {
-                var room = _context.Rooms.Where(x => x.Id == member.RoomId).FirstOrDefault();
-                using (var transaction = _context.Database.BeginTransaction())
+            var apiResponse = new ApiResponse();
+            var errList = new ErrorList();
+ 
+            using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
                     {
+                        var member = await _context.Members.FindAsync(id);
+
+                        if(member == null)
+                        {
+                            errList.ErrorCode = "NotFound";
+                            errList.ErrorDescription = "Member Id is Not Correct";
+                            apiResponse.Error = errList;
+                            throw new Exception("Not Found");
+                        }
+
+                        DeleteUserLoginDetails(new List<Member>
+                                                {
+                                                    member
+                                                });
+
                         _context.Members.Remove(member);
                         await _context.SaveChangesAsync();
+
+                        var room = _context.Rooms.Where(x => x.Id == member.RoomId).FirstOrDefault();
+
                         if (room.Occupancy > 0)
                         {
                             room.Occupancy -= 1;
@@ -192,23 +234,56 @@ namespace PGManagementService.BusinessLogic
                         {
                             room.AvailableBeds += 1;
                         }
-
+                        _context.Entry(room).State = EntityState.Modified;
                         _context.Rooms.Update(room);
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();                        
 
                         await transaction.CommitAsync();
+                        apiResponse.Result = true;
+                        return apiResponse;
                     }
                     catch (Exception ex)
                     {
                         await transaction.RollbackAsync();
                         _logger.LogError($"{className}: {methodName}  Exception : {ex}");
+                        return apiResponse;
                     }
-                }
-
             }
 
 
+
             
+        }
+
+        private async void DeleteUserLoginDetails(IList<Member> members)
+        {
+
+            using (var transaction = _context.Database.BeginTransaction())
+            {
+                    try
+                    {
+                        foreach (var member in members)
+                        {
+                            var user = await _userManager.FindByNameAsync(member.Email);
+                            var res = await _userManager.DeleteAsync(user);
+                            if (res.Succeeded)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                throw new Exception(res.Errors.ToString());
+                            }
+                        }
+                        transaction.Commit();
+                    }
+                    catch(Exception ex)
+                    {
+                        transaction.Rollback();
+                        _logger.LogError($"AdminBL : DeleteUserLoginDetails Exception : {ex}");
+                        throw;
+                    }
+            }         
         }
 
         #region Room Management
@@ -222,10 +297,11 @@ namespace PGManagementService.BusinessLogic
                                      Capacity = x.Capacity,
                                      Occupied = x.Occupancy,
                                      Type = x.Type,
-                                     BedsAvailable = x.AvailableBeds
+                                     BedsAvailable = x.AvailableBeds,
+                                     Members= x.Members.ToList()
                                  })
                                  .AsEnumerable();
-
+            
 
             if (rooms.Any())
             {
@@ -246,7 +322,7 @@ namespace PGManagementService.BusinessLogic
                 Type = roomDto.RoomType.ToString(),
                 Capacity = (int)roomDto.RoomType,
                 AvailableBeds = (int)roomDto.RoomType
-
+                
             };
             using (var transaction = _context.Database.BeginTransaction())
             {
@@ -268,7 +344,7 @@ namespace PGManagementService.BusinessLogic
 
         public bool DeleteRoom(int id)
         {
-            var methodName = MethodBase.GetCurrentMethod()?.Name;
+            var methodName = MethodBase.GetCurrentMethod()?.Name; 
             var result = 0;
             using (var transaction = _context.Database.BeginTransaction())
             {
@@ -277,6 +353,12 @@ namespace PGManagementService.BusinessLogic
                     var room = _context.Rooms.Where(x=>x.Id == id).FirstOrDefault();
                     if(room!= null)
                     {
+                        var members = room.Members;
+                        if (members.Any())
+                        {
+                            DeleteUserLoginDetails(members.ToList());
+                        }                        
+
                         _context.Rooms.Remove(room);
                     }
                     

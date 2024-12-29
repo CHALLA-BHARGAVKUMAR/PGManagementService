@@ -10,8 +10,10 @@ using Microsoft.AspNetCore.Identity;
 using Serilog;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +22,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext and configure SQL Server connection
 builder.Services.AddDbContext<PGManagementServiceDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"))
+    //.LogTo(Console.WriteLine, LogLevel.Information)
+    );
 
 // Add Identity services
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -29,6 +33,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddScoped<IAdminBL, AdminBL>();
+builder.Services.AddScoped<IRegistrationBL, RegistrationBL>();
 
 // Configure Serilog using appsettings.json
 builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -85,18 +90,58 @@ builder.Services.AddRazorPages();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PG Management API", Version = "v1" });
+
+    // Add security definition for bearer token authentication
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        BearerFormat = "JWT",
+        Description = "Enter 'Bearer' followed by a space and your token."
+    });
+
+    // Enforce authentication for all endpoints
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
 });
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.LoginPath = "/Account/Login";
-                    options.AccessDeniedPath = "/Account/AccessDenied";
-                });
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "domain",
+        ValidAudience = "domain",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("bhargavkumarchallaPGManagementService"))
+    };
+});
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("Member", policy => policy.RequireRole("Member"));
 });
 
 

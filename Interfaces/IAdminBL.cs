@@ -10,7 +10,7 @@ namespace PGManagementService.Interfaces
         Task AddMemberAsync(Member member);
         Task<ApiResponse> AddMemberAsync(MemberRequest memberRequest);
         Task UpdateMemberAsync(Member member);
-        Task DeleteMemberAsync(int id);
+        Task<ApiResponse> DeleteMemberAsync(int id);
 
         bool DeleteRoom(int id);
 

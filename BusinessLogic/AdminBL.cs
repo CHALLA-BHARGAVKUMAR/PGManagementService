@@ -287,29 +287,26 @@ namespace PGManagementService.BusinessLogic
         }
 
         #region Room Management
-        public IEnumerable<RoomResponse> GetAllRoomsAsync()
+        public PaginatedResult<RoomResponse> GetAllRoomsAsync(PaginationRequestDto paginationRequest)
         {
-            var rooms = _context.Rooms
-                                 .Select(x => new RoomResponse
-                                 {
-                                     Id = x.Id,
-                                     RoomNo = x.RoomNumber,
-                                     Capacity = x.Capacity,
-                                     Occupied = x.Occupancy,
-                                     Type = x.Type,
-                                     BedsAvailable = x.AvailableBeds,
-                                     Members= x.Members.ToList()
-                                 })
-                                 .AsEnumerable();
-            
+            var paginatedData = _context.Rooms.GetPaginatedDataAsync(
+                                pageNumber: paginationRequest.PageNumber,
+                                pageSize: paginationRequest.PageSize,
+                                sortBy: paginationRequest.SortBy,
+                                sortDescending: paginationRequest.SortDescending,
+                                selector: x => new RoomResponse
+                                {
+                                    Id = x.Id,
+                                    RoomNo = x.RoomNumber,
+                                    Capacity = x.Capacity,
+                                    Occupied = x.Occupancy,
+                                    Type = x.Type,
+                                    BedsAvailable = x.AvailableBeds,
+                                    Members = x.Members.ToList()
+                                }
+                            ).Result;
 
-            if (rooms.Any())
-            {
-                return rooms;
-            }
-
-
-            return null;
+            return paginatedData;
         }
 
         public async Task AddRoomAsync(RoomRequest roomDto)
@@ -354,7 +351,7 @@ namespace PGManagementService.BusinessLogic
                     if(room!= null)
                     {
                         var members = room.Members;
-                        if (members.Any())
+                        if (members?.Any() == true)
                         {
                             DeleteUserLoginDetails(members.ToList());
                         }                        
@@ -446,6 +443,8 @@ namespace PGManagementService.BusinessLogic
 
             return members;
         }
+
+
 
     }
 }

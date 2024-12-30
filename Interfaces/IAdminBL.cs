@@ -14,7 +14,7 @@ namespace PGManagementService.Interfaces
 
         bool DeleteRoom(int id);
 
-        IEnumerable<RoomResponse> GetAllRoomsAsync();
+        PaginatedResult<RoomResponse> GetAllRoomsAsync(PaginationRequestDto paginationRequest);
         Task AddRoomAsync(RoomRequest room);
 
         public Task AddRoomAsyncApi(RoomRequest roomDto);

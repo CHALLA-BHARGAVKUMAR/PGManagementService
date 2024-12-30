@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
 using PGManagementService.Data.DTO;
-  
+
 namespace PGManagementService.Validators
 {
-    public class RoomRequestValidator: AbstractValidator<RoomRequest>
+    public class RoomRequestValidator : AbstractValidator<RoomRequest>
     {
         public RoomRequestValidator()
         {
@@ -74,6 +74,35 @@ namespace PGManagementService.Validators
             RuleFor(x => x.Otp)
                 .NotEmpty().WithMessage("OTP is required.")
                 .Length(6).WithMessage("OTP must be exactly 6 digits.");
+        }
+    }
+
+    public class PaginationRequestDtoValidator : AbstractValidator<PaginationRequestDto>
+    {
+        public PaginationRequestDtoValidator()
+        {
+            // Validate PageNumber (must be greater than or equal to 1)
+            RuleFor(x => x.PageNumber)
+                .GreaterThanOrEqualTo(1)
+                .WithMessage("Page number must be greater than or equal to 1");
+
+            // Validate PageSize (must be greater than or equal to 1 and optionally less than a max limit)
+            RuleFor(x => x.PageSize)
+                .GreaterThanOrEqualTo(1)
+                .WithMessage("Page size must be greater than or equal to 1")
+                .LessThanOrEqualTo(100)  // Example of setting a maximum page size
+                .WithMessage("Page size must be less than or equal to 100");
+
+            // Validate SortBy (if provided, ensure it is not empty or null)
+            RuleFor(x => x.SortBy)
+                .NotEmpty()
+                .When(x => !string.IsNullOrEmpty(x.SortBy)) // Ensure SortBy is not empty if it's provided
+                .WithMessage("SortBy cannot be empty.");
+
+            // Validate SortDescending (boolean, so no specific validation needed, but you can add logic if necessary)
+            RuleFor(x => x.SortDescending)
+                .NotNull()
+                .WithMessage("SortDescending cannot be null.");
         }
     }
 

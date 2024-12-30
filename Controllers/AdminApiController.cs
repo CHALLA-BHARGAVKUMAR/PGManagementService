@@ -8,7 +8,7 @@ using PGManagementService.Interfaces;
 namespace PGManagementService.Controllers
 {
 
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminApiController : Controller
@@ -26,28 +26,12 @@ namespace PGManagementService.Controllers
         #region Rooms CRUD
 
         [HttpGet("AllRooms")]
-        public ActionResult<ApiResponse> AllRooms()
+        public ActionResult<ApiResponse> AllRooms([FromQuery] PaginationRequestDto paginationRequest)
         {
-            var temp = _adminBL.GetAllRoomsAsync();
-            Console.WriteLine(temp);
-            var rooms = _adminBL.GetAllRoomsAsync();
 
-            if (rooms == null)
-            {
-                ErrorList errorList = new()
-                {
-                    ErrorCode = "NoRooms",
-                    ErrorDescription = "Ro Rooms Available"
-                };
-                return BadRequest(new ApiResponse
-                {
-                    Error = errorList
-                });
-            }
-            return Ok(new ApiResponse
-            {
-                Result = rooms
-            });
+            var rooms = _adminBL.GetAllRoomsAsync(paginationRequest);
+            return Ok(rooms);
+
         }
 
         [HttpPost("AddRoom")]
